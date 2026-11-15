@@ -142,16 +142,18 @@
   /* 流れ星だけは、回答欄の上を一瞬横切る細い線として描く（別の層。操作は受け取らない） */
   var fx = null, fctx = null, fxDirty = false;
   var moon = null, moonQueued = false;
+  if (!calm && !window.__earthOk) { /* 地球（earth.js）を出せない端末だけ、代わりに月を出す */
+    moon = document.createElement('div');
+    moon.className = 'moon';
+    moon.setAttribute('aria-hidden', 'true');
+    cv.parentNode.insertBefore(moon, cv);
+  }
   if (!calm) {
     fx = document.createElement('canvas');
     fx.className = 'fx';
     fx.setAttribute('aria-hidden', 'true');
     document.body.appendChild(fx);
     fctx = fx.getContext('2d');
-    moon = document.createElement('div');
-    moon.className = 'moon';
-    moon.setAttribute('aria-hidden', 'true');
-    cv.parentNode.insertBefore(moon, cv);
   }
   function moonApply() {
     moonQueued = false;
