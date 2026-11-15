@@ -78,7 +78,7 @@
   /* ---------- 値の読み書き ---------- */
   function inputsOf(key) { return Array.prototype.slice.call(form.querySelectorAll('input[name="' + key + '"]')); }
   function read() {
-    var d = { guest: $('guest').value, introducer: $('introducer').value };
+    var d = { guest: $('guest').value, guest_link: $('guest_link').value, introducer: $('introducer').value };
     parts.forEach(function (p) {
       var on = inputsOf(p.key).filter(function (i) { return i.checked; }).map(function (i) { return i.value; });
       d[p.key] = p.type === 'multi' ? on : (on[0] || '');
@@ -89,6 +89,7 @@
   function write(d) {
     d = d || {};
     $('guest').value = d.guest || '';
+    $('guest_link').value = d.guest_link || '';
     $('introducer').value = d.introducer || '';
     parts.forEach(function (p) {
       var v = d[p.key];
@@ -216,6 +217,7 @@
     $('formView').hidden = true;
     $('doneView').hidden = false;
     window.scrollTo(0, 0);
+    bgUpdate();
     try { $('doneView').focus({ preventScroll: true }); } catch (e) { /* 古い端末 */ }
   }
   function again() {
@@ -226,9 +228,23 @@
     $('doneView').hidden = true;
     $('formView').hidden = false;
     window.scrollTo(0, 0);
+    bgUpdate();
+  }
+
+  function bgUpdate() { try { window.dispatchEvent(new Event('bg:update')); } catch (e) { /* 古い端末 */ } }
+  /* 題名は必ず1行に収める（端末の文字幅に合わせて文字を小さくする） */
+  function fitTitle() {
+    var t = $('titleLine');
+    if (!t) return;
+    t.style.fontSize = '';
+    var size = parseFloat(getComputedStyle(t).fontSize), max = t.parentNode.clientWidth;
+    while (t.scrollWidth > max && size > 13) { size -= 0.5; t.style.fontSize = size + 'px'; }
   }
 
   /* ---------- 起動 ---------- */
+  fitTitle();
+  window.addEventListener('resize', fitTitle);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitTitle);
   build();
   var draft = loadDraft();
   if (draft) { submissionId = draft.id; write(draft.data); }
@@ -259,7 +275,7 @@
   form.addEventListener('keydown', function (ev) {
     if (ev.key === 'Enter' && ev.target && ev.target.tagName === 'INPUT' && ev.target.type === 'text') {
       ev.preventDefault();
-      if (ev.target.id === 'guest') $('introducer').focus(); else ev.target.blur();
+      if (ev.target.id === 'guest') $('guest_link').focus(); else ev.target.blur();
     }
   });
   form.addEventListener('submit', submit);

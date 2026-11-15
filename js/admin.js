@@ -107,6 +107,18 @@
     [['ゲスト様', d.guest + ' 様'], ['ご紹介者様', d.introducer + ' 様'], ['回答登録日時', minute(d.at)]].forEach(function (p) {
       dl.appendChild(el('dt', '', p[0])); dl.appendChild(el('dd', '', p[1]));
     });
+    dl.appendChild(el('dt', '', '会社HP・SNS'));
+    var dd = el('dd', d.link ? '' : 'none');
+    if (!d.link) dd.textContent = '記載なし';
+    else d.link.split(/(\s+)/).forEach(function (tok) {
+      /* http(s) のURLだけリンクにする。それ以外は文字のまま */
+      if (/^https?:[/][/][^\s]+$/i.test(tok)) {
+        var a = el('a', '', tok);
+        a.href = tok; a.target = '_blank'; a.rel = 'noopener noreferrer';
+        dd.appendChild(a);
+      } else dd.appendChild(document.createTextNode(tok));
+    });
+    dl.appendChild(dd);
     head.appendChild(dl);
     box.appendChild(head);
     d.answers.forEach(function (a) {
@@ -125,7 +137,7 @@
     });
   }
   function asText(d) {
-    var L = ['【真誓会大宮エリア ゲスト様事前ヒアリング】', 'ゲスト様：' + d.guest + ' 様', 'ご紹介者様：' + d.introducer + ' 様', '回答登録日時：' + minute(d.at), ''];
+    var L = ['【真誓会大宮エリア ゲスト様事前ヒアリング】', 'ゲスト様：' + d.guest + ' 様', '会社HP・SNS：' + (d.link || '記載なし'), 'ご紹介者様：' + d.introducer + ' 様', '回答登録日時：' + minute(d.at), ''];
     d.answers.forEach(function (a) {
       L.push('■ ' + a.no + ' ' + a.title);
       a.parts.forEach(function (p) {

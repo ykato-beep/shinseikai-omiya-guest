@@ -17,8 +17,8 @@
 <main class="wrap">
   <header class="hero">
     <p class="eyebrow">DIGITAL CONNECTION</p>
-    <h1><span class="org">真誓会大宮エリア</span>ゲスト様 事前ヒアリングシート</h1>
-    <p class="tagline">人と人がつながり、未来が広がる。</p>
+    <h1><span class="org">真誓会大宮エリア</span><span class="title-line" id="titleLine">ゲスト様 事前ヒアリングシート</span></h1>
+    <p class="tagline">人と人がつながり、未来が広がるエリア。</p>
   </header>
 
   <div id="formView">
@@ -37,6 +37,12 @@
           <label class="field-label" for="guest">ゲスト様のお名前 <span class="tag req">必須</span></label>
           <input type="text" id="guest" name="guest" maxlength="60" placeholder="例）山田 太郎" enterkeyhint="next" aria-describedby="err-guest">
           <p class="err" id="err-guest" role="alert"></p>
+        </div>
+        <div class="field" id="wrap-guest_link">
+          <label class="field-label" for="guest_link">ゲスト様の会社ホームページ・SNS <span class="tag opt">任意</span></label>
+          <textarea class="short" id="guest_link" name="guest_link" rows="2" maxlength="300" placeholder="例）https://example.co.jp ／ Instagram @example" autocapitalize="off" autocorrect="off" spellcheck="false" aria-describedby="err-guest_link"></textarea>
+          <p class="hint-line">ご存じの場合のみ。URLやアカウント名など、わかる範囲で構いません。</p>
+          <p class="err" id="err-guest_link" role="alert"></p>
         </div>
         <div class="field" id="wrap-introducer">
           <label class="field-label" for="introducer">ご紹介者様のお名前 <span class="tag req">必須</span></label>

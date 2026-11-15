@@ -1,7 +1,7 @@
 :root {
   --bg0: #040a1a;
   --bg1: #0a1a3c;
-  --card: rgba(9, 20, 46, 0.9);
+  --card: rgba(9, 20, 46, 0.8);
   --card-line: rgba(130, 175, 255, 0.22);
   --text: #edf3ff;
   --sub: #a9bcdc;
@@ -27,16 +27,32 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 /* 背景：静止したグラデーションの上に、光点のキャンバスを重ねる。どちらも操作を受け取らない */
-.bg-base, #bg {
+.bg-base, #bg, .fx {
   position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; height: 100lvh;
   pointer-events: none; z-index: 0;
 }
+.fx { z-index: 2; }
 .bg-base {
   background:
     radial-gradient(90% 55% at 85% -5%, rgba(64, 132, 255, 0.34), transparent 62%),
     radial-gradient(80% 50% at -10% 105%, rgba(70, 200, 255, 0.2), transparent 60%),
     linear-gradient(180deg, var(--bg1) 0%, var(--bg0) 62%);
 }
+/* 月：スクロールに合わせて画面の下端から昇る。位置と濃さは bg.js が決める */
+.moon {
+  position: fixed; right: 7vw; bottom: 5vh; z-index: 0; pointer-events: none;
+  width: clamp(88px, 27vw, 150px); aspect-ratio: 1; border-radius: 50%;
+  opacity: 0; will-change: transform, opacity;
+  background:
+    radial-gradient(circle at 33% 30%, rgba(146, 166, 204, 0.5) 0, transparent 13%),
+    radial-gradient(circle at 63% 57%, rgba(146, 166, 204, 0.42) 0, transparent 17%),
+    radial-gradient(circle at 41% 72%, rgba(146, 166, 204, 0.36) 0, transparent 9%),
+    radial-gradient(circle at 72% 28%, rgba(146, 166, 204, 0.3) 0, transparent 8%),
+    radial-gradient(circle at 38% 34%, #fffef6 0%, #e7edf9 52%, #b4c2de 100%);
+  box-shadow: 0 0 36px 6px rgba(196, 220, 255, 0.34), 0 0 120px 44px rgba(110, 165, 255, 0.17);
+}
+/* 送信ボタンの下に、月が見える夜空の余白を取る */
+#formView { padding-bottom: clamp(96px, 24vw, 140px); }
 .wrap { position: relative; z-index: 1; width: 100%; max-width: 640px; margin: 0 auto; padding: 28px 16px 72px; }
 .wrap.wide { max-width: 860px; }
 
@@ -45,6 +61,7 @@ body {
 .eyebrow::after { content: ""; display: block; width: 44px; height: 1px; margin-top: 10px; background: linear-gradient(90deg, var(--cyan), transparent); }
 h1 { margin: 0; font-size: 26px; line-height: 1.4; font-weight: 700; letter-spacing: 0.02em; text-wrap: balance; }
 h1 .org { display: block; font-size: 15px; font-weight: 600; color: var(--sub); letter-spacing: 0.12em; margin-bottom: 4px; }
+.title-line { display: block; white-space: nowrap; }
 .tagline { margin: 10px 0 0; font-size: 13px; color: var(--sub); }
 
 .card {
@@ -104,6 +121,8 @@ input[type="text"], input[type="search"], textarea {
 textarea { resize: vertical; min-height: 96px; line-height: 1.65; }
 input::placeholder, textarea::placeholder { color: #6e82a8; opacity: 1; }
 input:focus, textarea:focus { outline: none; border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(127, 216, 255, 0.22); }
+.hint-line { margin: 6px 2px 0; font-size: 12px; color: var(--faint); }
+textarea.short { min-height: 76px; }
 .field { margin: 0 0 16px; }
 .field:last-child, .part:last-child { margin-bottom: 0; }
 
@@ -169,7 +188,9 @@ input:focus, textarea:focus { outline: none; border-color: var(--cyan); box-shad
 .detail-head { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
 .kv { display: grid; grid-template-columns: 7.5em 1fr; gap: 6px 12px; margin: 0; font-size: 15px; }
 .kv dt { color: var(--sub); font-size: 13px; padding-top: 2px; }
-.kv dd { margin: 0; font-weight: 700; overflow-wrap: anywhere; }
+.kv dd { margin: 0; font-weight: 700; overflow-wrap: anywhere; white-space: pre-wrap; }
+.kv dd.none { color: var(--faint); font-weight: 400; }
+.kv a { color: var(--cyan); text-underline-offset: 3px; }
 .ans .sub-label { margin: 12px 0 6px; font-size: 12px; color: var(--sub); font-weight: 700; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .chips li { padding: 6px 12px; border-radius: 10px; font-size: 14px; line-height: 1.5; background: var(--sel-bg); border: 1px solid rgba(127, 216, 255, 0.5); }
