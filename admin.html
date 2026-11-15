@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+<meta name="referrer" content="no-referrer">
+<meta name="format-detection" content="telephone=no">
+<meta name="theme-color" content="#0a1a3c">
+<title>真誓会大宮エリア｜ゲスト情報管理</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="bg-base" aria-hidden="true"></div>
+<canvas id="bg" data-bg="calm" aria-hidden="true"></canvas>
+
+<main class="wrap wide">
+  <header class="hero">
+    <p class="eyebrow">DIGITAL CONNECTION</p>
+    <h1><span class="org">真誓会大宮エリア</span>ゲスト情報管理</h1>
+  </header>
+
+  <section class="card" id="denied" hidden>
+    <h2>このページは専用URLからのみご利用いただけます。</h2>
+    <p>運営委員会から共有された管理用URLを、省略せずそのまま開いてください。</p>
+  </section>
+
+  <div id="listView" hidden>
+    <div class="stats">
+      <div class="stat"><b id="statTotal">–</b><span>累計回答件数</span></div>
+      <div class="stat"><b id="statToday">–</b><span>本日の回答件数</span></div>
+    </div>
+    <form class="card tools" id="searchForm" autocomplete="off">
+      <div><label for="qGuest">ゲスト名で検索</label><input type="search" id="qGuest" maxlength="60" placeholder="例）山田" enterkeyhint="search"></div>
+      <div><label for="qIntro">紹介者名で検索</label><input type="search" id="qIntro" maxlength="60" placeholder="例）佐藤" enterkeyhint="search"></div>
+      <div class="row">
+        <button type="submit" class="btn small">検索</button>
+        <button type="button" class="btn ghost small" id="clearBtn">条件をクリア</button>
+        <button type="button" class="btn ghost small" id="reloadBtn">再読み込み</button>
+      </div>
+    </form>
+    <div class="list-head"><h2>ゲスト回答一覧</h2><span id="listInfo"></span></div>
+    <p class="notice" id="listError" role="alert" hidden></p>
+    <ul class="list" id="list"></ul>
+    <div class="loading" id="listLoading" hidden><span class="spin"></span>読み込んでいます…</div>
+    <p class="empty" id="listEmpty" hidden></p>
+    <button type="button" class="btn ghost" id="moreBtn" hidden>さらに表示する</button>
+  </div>
+
+  <div id="detailView" hidden>
+    <div class="detail-head">
+      <button type="button" class="btn ghost small" id="backBtn">← 一覧に戻る</button>
+      <button type="button" class="btn ghost small" id="copyBtn">回答の全文をコピー</button>
+    </div>
+    <p class="notice" id="detailError" role="alert" hidden></p>
+    <div class="loading" id="detailLoading" hidden><span class="spin"></span>読み込んでいます…</div>
+    <div id="detail"></div>
+    <button type="button" class="btn ghost" id="backBtn2">一覧に戻る</button>
+  </div>
+</main>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="js/config.js"></script>
+<script src="js/bg.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>
