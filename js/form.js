@@ -78,7 +78,7 @@
   /* ---------- 値の読み書き ---------- */
   function inputsOf(key) { return Array.prototype.slice.call(form.querySelectorAll('input[name="' + key + '"]')); }
   function read() {
-    var d = { guest: $('guest').value, guest_link: $('guest_link').value, introducer: $('introducer').value };
+    var d = { guest: $('guest').value, guest_link: $('guest_link').value, introducer: $('introducer').value, meeting_date: $('meeting_date').value };
     parts.forEach(function (p) {
       var on = inputsOf(p.key).filter(function (i) { return i.checked; }).map(function (i) { return i.value; });
       d[p.key] = p.type === 'multi' ? on : (on[0] || '');
@@ -91,6 +91,7 @@
     $('guest').value = d.guest || '';
     $('guest_link').value = d.guest_link || '';
     $('introducer').value = d.introducer || '';
+    $('meeting_date').value = d.meeting_date || '';
     parts.forEach(function (p) {
       var v = d[p.key];
       var arr = Array.isArray(v) ? v : (v ? [v] : []);

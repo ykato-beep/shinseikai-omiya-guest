@@ -118,7 +118,7 @@ h2 { margin: 0 0 16px; font-size: 18px; line-height: 1.55; font-weight: 700; tex
 }
 .opt input:focus-visible + span { outline: 2px solid #fff; outline-offset: 2px; }
 
-input[type="text"], input[type="search"], textarea {
+input[type="text"], input[type="search"], input[type="date"], textarea {
   display: block; width: 100%;
   font: inherit; font-size: 16px; color: var(--text);
   background: rgba(2, 8, 24, 0.6);
@@ -131,6 +131,8 @@ input::placeholder, textarea::placeholder { color: #6e82a8; opacity: 1; }
 input:focus, textarea:focus { outline: none; border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(127, 216, 255, 0.22); }
 .hint-line { margin: 6px 2px 0; font-size: 12px; color: var(--faint); }
 textarea.short { min-height: 76px; }
+input[type="date"] { text-align: left; }
+input[type="date"]::-webkit-date-and-time-value { text-align: left; }
 .field { margin: 0 0 16px; }
 .field:last-child, .part:last-child { margin-bottom: 0; }
 

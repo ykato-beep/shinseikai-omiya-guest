@@ -32,6 +32,12 @@
     ['denied', 'listView', 'detailView'].forEach(function (v) { $(v).hidden = v !== view; });
   }
   function minute(at) { return String(at || '').slice(0, 16); }
+  /* 2026/11/20 → 2026/11/20（金） */
+  function withDay(d) {
+    var m = /^(\d{4})[/](\d{2})[/](\d{2})$/.exec(String(d || ''));
+    if (!m) return String(d || '');
+    return d + '（' + '日月火水木金土'.charAt(new Date(+m[1], +m[2] - 1, +m[3]).getDay()) + '）';
+  }
   function setError(id, msg) { var e = $(id); e.textContent = msg || ''; e.hidden = !msg; }
 
   /* ---------- 一覧 ---------- */
@@ -69,7 +75,7 @@
     b.appendChild(t);
     b.appendChild(el('span', 'name', it.guest + ' 様'));
     b.appendChild(el('span', 'chev', '›'));
-    b.appendChild(el('span', 'by', 'ご紹介：' + it.introducer + ' 様'));
+    b.appendChild(el('span', 'by', (it.meeting ? '定例会 ' + withDay(it.meeting) + '　' : '') + 'ご紹介：' + it.introducer + ' 様'));
     b.addEventListener('click', function () { open(it.id, true); });
     li.appendChild(b);
     return li;
@@ -104,7 +110,7 @@
     box.textContent = '';
     var head = el('section', 'card');
     var dl = el('dl', 'kv');
-    [['ゲスト様', d.guest + ' 様'], ['ご紹介者様', d.introducer + ' 様'], ['回答登録日時', minute(d.at)]].forEach(function (p) {
+    [['ゲスト様', d.guest + ' 様'], ['ご紹介者様', d.introducer + ' 様'], ['参加する定例会', d.meeting ? withDay(d.meeting) : '記載なし'], ['回答登録日時', minute(d.at)]].forEach(function (p) {
       dl.appendChild(el('dt', '', p[0])); dl.appendChild(el('dd', '', p[1]));
     });
     dl.appendChild(el('dt', '', '会社HP・SNS'));
@@ -137,7 +143,7 @@
     });
   }
   function asText(d) {
-    var L = ['【真誓会大宮エリア ゲスト様事前ヒアリング】', 'ゲスト様：' + d.guest + ' 様', '会社HP・SNS：' + (d.link || '記載なし'), 'ご紹介者様：' + d.introducer + ' 様', '回答登録日時：' + minute(d.at), ''];
+    var L = ['【真誓会大宮エリア ゲスト様事前ヒアリング】', 'ゲスト様：' + d.guest + ' 様', '会社HP・SNS：' + (d.link || '記載なし'), 'ご紹介者様：' + d.introducer + ' 様', '参加する定例会：' + (d.meeting ? withDay(d.meeting) : '記載なし'), '回答登録日時：' + minute(d.at), ''];
     d.answers.forEach(function (a) {
       L.push('■ ' + a.no + ' ' + a.title);
       a.parts.forEach(function (p) {

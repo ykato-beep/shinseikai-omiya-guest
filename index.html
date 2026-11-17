@@ -49,6 +49,12 @@
           <input type="text" id="introducer" name="introducer" maxlength="60" placeholder="例）佐藤 一郎" enterkeyhint="next" aria-describedby="err-introducer">
           <p class="err" id="err-introducer" role="alert"></p>
         </div>
+        <div class="field" id="wrap-meeting_date">
+          <label class="field-label" for="meeting_date">参加する定例会の実施日 <span class="tag opt">任意</span></label>
+          <input type="date" id="meeting_date" name="meeting_date" min="2026-01-01" max="2099-12-31" aria-describedby="err-meeting_date">
+          <p class="hint-line">日付をタップして選択してください。未定の場合は空欄のままで構いません。</p>
+          <p class="err" id="err-meeting_date" role="alert"></p>
+        </div>
       </section>
 
       <div id="questions"></div>
