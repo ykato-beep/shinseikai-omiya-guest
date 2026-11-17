@@ -10,7 +10,7 @@
 <title>真誓会大宮エリア｜ゲスト情報管理</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
+<body class="board">
 <div class="bg-base" aria-hidden="true"></div>
 <canvas id="bg" data-bg="calm" aria-hidden="true"></canvas>
 
@@ -33,6 +33,9 @@
     <form class="card tools" id="searchForm" autocomplete="off">
       <div><label for="qGuest">ゲスト名で検索</label><input type="search" id="qGuest" maxlength="60" placeholder="例）山田" enterkeyhint="search"></div>
       <div><label for="qIntro">紹介者名で検索</label><input type="search" id="qIntro" maxlength="60" placeholder="例）佐藤" enterkeyhint="search"></div>
+      <div class="full"><label for="qMeeting">参加する定例会で絞り込み</label>
+        <select id="qMeeting"><option value="">すべての回答</option></select>
+      </div>
       <div class="row">
         <button type="submit" class="btn small">検索</button>
         <button type="button" class="btn ghost small" id="clearBtn">条件をクリア</button>
@@ -50,11 +53,36 @@
   <div id="detailView" hidden>
     <div class="detail-head">
       <button type="button" class="btn ghost small" id="backBtn">← 一覧に戻る</button>
-      <button type="button" class="btn ghost small" id="copyBtn">回答の全文をコピー</button>
+      <button type="button" class="btn ghost small" id="prevBtn">‹ 前のゲスト</button>
+      <button type="button" class="btn ghost small" id="nextBtn">次のゲスト ›</button>
+      <span class="pos" id="posInfo"></span>
+      <button type="button" class="btn ghost small push" id="copyBtn">全文をコピー</button>
     </div>
     <p class="notice" id="detailError" role="alert" hidden></p>
     <div class="loading" id="detailLoading" hidden><span class="spin"></span>読み込んでいます…</div>
-    <div id="detail"></div>
+
+    <div class="meeting" id="meeting" hidden>
+      <div id="detail"></div>
+
+      <aside class="card memo-panel" id="memoPanel" aria-labelledby="memoTitle">
+        <span class="qno">MEETING NOTE</span>
+        <h2 id="memoTitle">対応・戦略メモ</h2>
+        <p class="memo-status" id="memoStatus"></p>
+
+        <!-- パソコン：入力して送信する -->
+        <form class="memo-form" id="memoForm" autocomplete="off" novalidate>
+          <div id="memoFields"></div>
+          <p class="notice" id="memoError" role="alert" hidden></p>
+          <p class="note-small">この画面の回答内容と上のメモをすべてまとめて、運営担当の登録済みアドレスへ送ります。入力途中の内容は、送信するまでこのパソコンに一時保存されます。</p>
+          <button type="submit" class="btn" id="memoSend">まとめをメールで送信する</button>
+        </form>
+
+        <!-- スマホ：送信済みのメモを読むだけ -->
+        <div class="memo-read" id="memoRead"></div>
+        <p class="memo-mobile-note">対応メモの入力と送信は、パソコンの画面でご利用ください。</p>
+      </aside>
+    </div>
+
     <button type="button" class="btn ghost" id="backBtn2">一覧に戻る</button>
   </div>
 </main>

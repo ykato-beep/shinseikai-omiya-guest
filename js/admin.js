@@ -1,13 +1,18 @@
-/* 管理画面。URL の # 以降にある管理用トークンを API へ本文で送る（URL の # 以降はサーバーへ送られない）。 */
+/* 管理画面。URL の # 以降にある管理用トークンを API へ本文で送る（URL の # 以降はサーバーへ送られない）。
+ * 詳細画面は会議で映して使う想定：左に回答、右に対応・戦略メモ（パソコンのみ入力可）と送信ボタン。 */
 (function () {
   var API = window.HEARING_API;
   var PAGE = 30;
+  var DRAFT = 'ssk-omiya-memo-draft-v1:';
   var $ = function (id) { return document.getElementById(id); };
   var token = (function () {
     var m = /[#&]k=([A-Za-z0-9_-]{32,200})/.exec(location.hash || '');
     return m ? m[1] : '';
   })();
-  var state = { items: [], matched: 0, guest: '', introducer: '', seq: 0, detail: null, scrollY: 0 };
+  /* URL の末尾に &id=回答ID が付いていれば、そのゲストの画面を直接開く */
+  var directId = (/[#&]id=([0-9a-f-]{36})/.exec(location.hash || '') || [])[1] || '';
+  var state = { items: [], matched: 0, guest: '', introducer: '', meeting: '', seq: 0, detail: null, scrollY: 0,
+    memoFields: [], memoMax: 2000, memoId: '', sending: false, saveTimer: 0, dirty: false };
 
   function el(tag, cls, text) {
     var e = document.createElement(tag);
@@ -15,18 +20,26 @@
     if (text != null) e.textContent = text;
     return e;
   }
+  function newId() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    var b = new Uint8Array(16);
+    crypto.getRandomValues(b);
+    b[6] = (b[6] & 0x0f) | 0x40; b[8] = (b[8] & 0x3f) | 0x80;
+    var h = Array.prototype.map.call(b, function (x) { return ('0' + x.toString(16)).slice(-2); }).join('');
+    return h.slice(0, 8) + '-' + h.slice(8, 12) + '-' + h.slice(12, 16) + '-' + h.slice(16, 20) + '-' + h.slice(20);
+  }
   function post(body) {
     if (!API) return Promise.resolve({ ok: false, message: '接続先が設定されていません。' });
     body.token = token;
     return fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body), redirect: 'follow', cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer' })
       .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
-      .catch(function () { return { ok: false, code: 'NETWORK', message: '通信できませんでした。電波の状態を確認して、再読み込みしてください。' }; });
+      .catch(function () { return { ok: false, code: 'NETWORK', message: '通信できませんでした。電波の状態を確認して、もう一度お試しください。' }; });
   }
   function toast(msg) {
     var t = $('toast');
     t.textContent = msg; t.hidden = false;
     clearTimeout(toast.t);
-    toast.t = setTimeout(function () { t.hidden = true; }, 2600);
+    toast.t = setTimeout(function () { t.hidden = true; }, 3200);
   }
   function show(view) {
     ['denied', 'listView', 'detailView'].forEach(function (v) { $(v).hidden = v !== view; });
@@ -47,7 +60,7 @@
     setError('listError', '');
     $('listLoading').hidden = false;
     $('moreBtn').disabled = true;
-    post({ action: 'adminList', guest: state.guest, introducer: state.introducer, offset: state.items.length, limit: PAGE }).then(function (r) {
+    post({ action: 'adminList', guest: state.guest, introducer: state.introducer, meeting: state.meeting, offset: state.items.length, limit: PAGE }).then(function (r) {
       if (seq !== state.seq) return; /* 後から出した要求の結果だけを使う */
       $('listLoading').hidden = true;
       $('moreBtn').disabled = false;
@@ -59,7 +72,8 @@
       $('statToday').textContent = r.today;
       state.matched = r.matched;
       r.items.forEach(function (it) { state.items.push(it); $('list').appendChild(row(it)); });
-      var filtered = state.guest || state.introducer;
+      meetingOptions(r.meetings || []);
+      var filtered = state.guest || state.introducer || state.meeting;
       $('listInfo').textContent = (filtered ? '該当 ' + r.matched + ' 件' : '全 ' + r.total + ' 件') + '・新しい順' + (r.now ? '（' + r.now.slice(11) + ' 時点）' : '');
       $('moreBtn').hidden = state.items.length >= r.matched;
       if (!$('moreBtn').hidden) $('moreBtn').textContent = 'さらに表示する（残り ' + (r.matched - state.items.length) + ' 件）';
@@ -67,12 +81,19 @@
       $('listEmpty').textContent = filtered ? '条件に合う回答はありません。' : 'まだ回答はありません。';
     });
   }
+  function meetingOptions(dates) {
+    var sel = $('qMeeting');
+    if (state.meeting && dates.indexOf(state.meeting) < 0) dates = dates.concat([state.meeting]);
+    sel.textContent = '';
+    var o = el('option', '', 'すべての回答'); o.value = ''; sel.appendChild(o);
+    dates.forEach(function (d) { var x = el('option', '', withDay(d) + ' の定例会'); x.value = d; sel.appendChild(x); });
+    sel.value = state.meeting;
+  }
   function row(it) {
     var li = el('li');
     var b = el('button', 'item');
     b.type = 'button';
-    var t = el('time', '', minute(it.at));
-    b.appendChild(t);
+    b.appendChild(el('time', '', minute(it.at)));
     b.appendChild(el('span', 'name', it.guest + ' 様'));
     b.appendChild(el('span', 'chev', '›'));
     b.appendChild(el('span', 'by', (it.meeting ? '定例会 ' + withDay(it.meeting) + '　' : '') + 'ご紹介：' + it.introducer + ' 様'));
@@ -81,15 +102,18 @@
     return li;
   }
 
-  /* ---------- 詳細 ---------- */
+  /* ---------- 詳細（会議用の画面） ---------- */
   function open(id, push) {
-    state.scrollY = window.scrollY;
+    if (state.detail) saveDraft();
+    if ($('listView').hidden === false) state.scrollY = window.scrollY;
     state.detail = null;
     $('detail').textContent = '';
+    $('meeting').hidden = true;
     setError('detailError', '');
     $('detailLoading').hidden = false;
     $('copyBtn').disabled = true;
     show('detailView');
+    nav(id);
     window.scrollTo(0, 0);
     if (push) try { history.pushState({ id: id }, '', location.href); } catch (e) { /* 履歴が使えなくても表示はできる */ }
     var seq = ++state.seq;
@@ -103,14 +127,32 @@
       state.detail = r.detail;
       $('copyBtn').disabled = false;
       render(r.detail);
+      memoSetup(r);
+      $('meeting').hidden = false;
+      fitPanel();
     });
+  }
+  /* 一覧の並びで「前のゲスト」「次のゲスト」へ移る（会議で順に見ていくため） */
+  function nav(id) {
+    var i = -1;
+    state.items.forEach(function (it, k) { if (it.id === id) i = k; });
+    var prev = i > 0 ? state.items[i - 1] : null, next = i >= 0 && i < state.items.length - 1 ? state.items[i + 1] : null;
+    $('prevBtn').disabled = !prev; $('nextBtn').disabled = !next;
+    $('prevBtn').onclick = prev ? function () { step(prev.id); } : null;
+    $('nextBtn').onclick = next ? function () { step(next.id); } : null;
+    $('posInfo').textContent = i >= 0 ? (i + 1) + ' / ' + state.items.length + ' 人目' : '';
+  }
+  function step(id) {
+    open(id, false);
+    try { history.replaceState({ id: id }, '', location.href); } catch (e) { /* 何もしない */ }
   }
   function render(d) {
     var box = $('detail');
     box.textContent = '';
-    var head = el('section', 'card');
+    var head = el('section', 'card guest-head');
+    head.appendChild(el('p', 'guest-name', d.guest + ' 様'));
     var dl = el('dl', 'kv');
-    [['ゲスト様', d.guest + ' 様'], ['ご紹介者様', d.introducer + ' 様'], ['参加する定例会', d.meeting ? withDay(d.meeting) : '記載なし'], ['回答登録日時', minute(d.at)]].forEach(function (p) {
+    [['ご紹介者様', d.introducer + ' 様'], ['参加する定例会', d.meeting ? withDay(d.meeting) : '記載なし'], ['回答登録日時', minute(d.at)]].forEach(function (p) {
       dl.appendChild(el('dt', '', p[0])); dl.appendChild(el('dd', '', p[1]));
     });
     dl.appendChild(el('dt', '', '会社HP・SNS'));
@@ -127,6 +169,7 @@
     dl.appendChild(dd);
     head.appendChild(dl);
     box.appendChild(head);
+    var grid = el('div', 'ans-grid');
     d.answers.forEach(function (a) {
       var sec = el('section', 'card ans');
       sec.appendChild(el('span', 'qno', a.no));
@@ -139,9 +182,131 @@
       });
       sec.appendChild(el('p', 'sub-label', '補足コメント'));
       sec.appendChild(el('p', a.note ? 'memo' : 'memo none', a.note || '記載なし'));
-      box.appendChild(sec);
+      grid.appendChild(sec);
+    });
+    box.appendChild(grid);
+  }
+
+  /* ---------- 対応・戦略メモ ---------- */
+  function memoRead() {
+    var v = {};
+    state.memoFields.forEach(function (f) { var t = $('memo-' + f.key); v[f.key] = t ? t.value : ''; });
+    return v;
+  }
+  function memoHasText(v) { return state.memoFields.some(function (f) { return (v[f.key] || '').trim(); }); }
+  function saveDraft() {
+    clearTimeout(state.saveTimer);
+    /* 手を加えていないメモ（読み込んだまま・送信済み）は下書きにしない */
+    if (!state.detail || !state.memoFields.length || !state.dirty) return;
+    var v = memoRead();
+    try {
+      if (memoHasText(v)) localStorage.setItem(DRAFT + state.detail.id, JSON.stringify({ t: Date.now(), memoId: state.memoId, values: v }));
+      else localStorage.removeItem(DRAFT + state.detail.id);
+    } catch (e) { /* 保存できなくても入力は続けられる */ }
+  }
+  function loadDraft(id) {
+    try {
+      var s = JSON.parse(localStorage.getItem(DRAFT + id) || 'null');
+      if (s && s.values && Date.now() - s.t < 30 * 864e5) return s;
+    } catch (e) { /* 壊れていたら使わない */ }
+    return null;
+  }
+  function memoSetup(r) {
+    state.memoFields = r.memoFields || [];
+    state.memoMax = r.memoMax || 2000;
+    var panel = $('memoPanel');
+    panel.hidden = !state.memoFields.length;
+    if (panel.hidden) return;
+    var draft = loadDraft(r.detail.id);
+    var last = r.memo || null;
+    var values = draft ? draft.values : (last ? last.values : {});
+    state.memoId = draft && /^[0-9a-f-]{36}$/.test(draft.memoId || '') ? draft.memoId : newId();
+    state.dirty = !!draft;
+    setError('memoError', '');
+
+    var box = $('memoFields');
+    box.textContent = '';
+    state.memoFields.forEach(function (f) {
+      var w = el('div', 'field');
+      var lab = el('label', 'field-label', f.label);
+      lab.htmlFor = 'memo-' + f.key;
+      w.appendChild(lab);
+      if (f.hint) w.appendChild(el('p', 'hint-line top', f.hint));
+      var ta = document.createElement('textarea');
+      ta.id = 'memo-' + f.key; ta.rows = f.key === 'policy' ? 5 : 3; ta.maxLength = state.memoMax;
+      ta.value = values[f.key] || '';
+      w.appendChild(ta);
+      box.appendChild(w);
+    });
+
+    /* スマホ用：送信済みのメモを読むだけの表示 */
+    var read = $('memoRead');
+    read.textContent = '';
+    if (last) {
+      state.memoFields.forEach(function (f) {
+        read.appendChild(el('p', 'sub-label', f.label));
+        read.appendChild(el('p', last.values[f.key] ? 'memo' : 'memo none', last.values[f.key] || '記載なし'));
+      });
+    } else read.appendChild(el('p', 'memo none', 'まだ送信された対応メモはありません。'));
+
+    memoStatus(draft ? '入力途中のメモがあります（未送信）。' : last ? '前回 ' + minute(last.at) + ' に' + (last.mailed ? '送信済み' : '記録済み（メールは未送信）') + 'の内容を表示しています。' : 'まだ送信されていません。', !!draft);
+  }
+  function memoStatus(text, warn) {
+    var s = $('memoStatus');
+    s.textContent = text;
+    s.classList.toggle('warn', !!warn);
+  }
+  function memoSending(on) {
+    state.sending = on;
+    var b = $('memoSend');
+    b.disabled = on;
+    b.textContent = '';
+    if (on) b.appendChild(el('span', 'spin'));
+    b.appendChild(document.createTextNode(on ? '送信しています…' : 'まとめをメールで送信する'));
+  }
+  function memoSend(ev) {
+    ev.preventDefault();
+    if (state.sending || !state.detail) return;
+    var v = memoRead();
+    if (!memoHasText(v)) { setError('memoError', '対応メモを1つ以上入力してから送信してください。'); return; }
+    setError('memoError', '');
+    saveDraft();
+    var id = state.detail.id, guest = state.detail.guest;
+    memoSending(true);
+    post({ action: 'adminSendMemo', id: id, memoId: state.memoId, memo: v }).then(function (r) {
+      memoSending(false);
+      if (!r.ok) {
+        if (r.code === 'AUTH') return show('denied');
+        /* メモは残してあるので、そのまま送り直せる */
+        return setError('memoError', r.message || '送信できませんでした。もう一度お試しください。');
+      }
+      try { localStorage.removeItem(DRAFT + id); } catch (e) { /* 何もしない */ }
+      if (state.detail && state.detail.id === id) state.dirty = false;
+      toast(guest + ' 様の対応メモをメールで送信しました。');
+      if (state.detail && state.detail.id === id) {
+        state.memoId = newId(); /* 書き直して送るときは別の記録になる */
+        memoStatus(minute(r.at) + ' に送信しました。', false);
+        var read = $('memoRead');
+        read.textContent = '';
+        state.memoFields.forEach(function (f) {
+          read.appendChild(el('p', 'sub-label', f.label));
+          read.appendChild(el('p', v[f.key].trim() ? 'memo' : 'memo none', v[f.key].trim() || '記載なし'));
+        });
+      }
     });
   }
+
+  /* パソコン表示では、メモ欄が画面の高さに収まるようにして、下端の送信ボタンを常に見せる */
+  var fitQueued = false;
+  function fitPanel() {
+    fitQueued = false;
+    var p = $('memoPanel');
+    if (window.innerWidth < 1000 || $('detailView').hidden) { p.style.maxHeight = ''; return; }
+    p.style.maxHeight = Math.max(320, window.innerHeight - Math.max(14, p.getBoundingClientRect().top) - 14) + 'px';
+  }
+  function fitSoon() { if (!fitQueued) { fitQueued = true; requestAnimationFrame(fitPanel); } }
+
+  /* ---------- 全文コピー（回答＋入力中のメモ） ---------- */
   function asText(d) {
     var L = ['【真誓会大宮エリア ゲスト様事前ヒアリング】', 'ゲスト様：' + d.guest + ' 様', '会社HP・SNS：' + (d.link || '記載なし'), 'ご紹介者様：' + d.introducer + ' 様', '参加する定例会：' + (d.meeting ? withDay(d.meeting) : '記載なし'), '回答登録日時：' + minute(d.at), ''];
     d.answers.forEach(function (a) {
@@ -153,6 +318,11 @@
       L.push('補足：' + (a.note || '記載なし'));
       L.push('');
     });
+    var v = memoRead();
+    if (memoHasText(v)) {
+      L.push('━━ 会議での対応メモ ━━');
+      state.memoFields.forEach(function (f) { L.push('【' + f.label + '】'); L.push((v[f.key] || '').trim() || '（記載なし）'); L.push(''); });
+    }
     return L.join('\n').trim() + '\n';
   }
   function copy() {
@@ -167,10 +337,10 @@
       var ok = false;
       try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
       document.body.removeChild(ta);
-      toast(ok ? '回答の全文をコピーしました。' : 'コピーできませんでした。画面の文字を選択してコピーしてください。');
+      toast(ok ? '全文をコピーしました。' : 'コピーできませんでした。画面の文字を選択してコピーしてください。');
     };
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(function () { toast('回答の全文をコピーしました。'); }, fallback);
+      navigator.clipboard.writeText(text).then(function () { toast('全文をコピーしました。'); }, fallback);
     } else fallback();
   }
   function back() {
@@ -178,34 +348,53 @@
     else toList();
   }
   function toList() {
+    saveDraft();
+    state.detail = null;
     state.seq++;
     show('listView');
     window.scrollTo(0, state.scrollY || 0);
+    if (!state.items.length) load(false); /* ゲストの画面を直接開いた場合は、ここで一覧を読む */
   }
 
   /* ---------- 起動 ---------- */
   if (!token) { show('denied'); return; }
   show('listView');
-  $('searchForm').addEventListener('submit', function (ev) {
-    ev.preventDefault();
+  function applySearch() {
     state.guest = $('qGuest').value.trim();
     state.introducer = $('qIntro').value.trim();
+    state.meeting = $('qMeeting').value;
+    load(false);
+  }
+  $('searchForm').addEventListener('submit', function (ev) {
+    ev.preventDefault();
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
-    load(false);
+    applySearch();
   });
+  $('qMeeting').addEventListener('change', applySearch);
   $('clearBtn').addEventListener('click', function () {
-    $('qGuest').value = ''; $('qIntro').value = '';
-    state.guest = ''; state.introducer = '';
-    load(false);
+    $('qGuest').value = ''; $('qIntro').value = ''; $('qMeeting').value = '';
+    applySearch();
   });
   $('reloadBtn').addEventListener('click', function () { load(false); });
   $('moreBtn').addEventListener('click', function () { load(true); });
   $('backBtn').addEventListener('click', back);
   $('backBtn2').addEventListener('click', back);
   $('copyBtn').addEventListener('click', copy);
+  $('memoForm').addEventListener('submit', memoSend);
+  $('memoForm').addEventListener('input', function () {
+    state.dirty = true;
+    setError('memoError', '');
+    memoStatus('入力途中のメモがあります（未送信）。', true);
+    clearTimeout(state.saveTimer);
+    state.saveTimer = setTimeout(saveDraft, 400);
+  });
+  window.addEventListener('pagehide', saveDraft);
+  window.addEventListener('scroll', fitSoon, { passive: true });
+  window.addEventListener('resize', fitSoon);
   window.addEventListener('popstate', function (ev) {
     if (ev.state && ev.state.id) open(ev.state.id, false); else toList();
   });
   try { history.replaceState(null, '', location.href); } catch (e) { /* 何もしない */ }
   load(false);
+  if (directId) open(directId, true);
 })();
