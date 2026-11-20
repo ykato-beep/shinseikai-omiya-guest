@@ -190,7 +190,8 @@
   }
 
   /* ---------- 当日の参加者（つなぐ相手の候補） ---------- */
-  function pickText(p) { return p.company + (p.area ? '（' + p.area + '）' : ''); }
+  /* 記載欄とメールに出す形：番号・氏名・所属エリアを空白で区切る */
+  function pickText(p) { return [p.no, p.name, p.area].filter(Boolean).join(' '); }
   function renderParticipants() {
     var old = $('partsCard');
     if (old) old.parentNode.removeChild(old);
@@ -201,7 +202,7 @@
     if (!state.participants.length) {
       sec.appendChild(el('p', 'memo none', '参加者リストはまだ読み込まれていません。'));
     } else {
-      sec.appendChild(el('p', 'hint-line top pc-only', 'つなぎたい参加者の行をクリックしてチェックすると、右の記載欄の下に会社名と所属エリアが表示されます。（' + state.participants.length + ' 件）'));
+      sec.appendChild(el('p', 'hint-line top pc-only', 'つなぎたい参加者の行をクリックしてチェックすると、右の記載欄の下に番号・氏名・所属エリアが表示されます。（' + state.participants.length + ' 件）'));
       var t = el('div', 'ptable');
       var h = el('div', 'prow phead');
       ['会社名', '所属エリア', 'PR①', 'PR②', 'PR③', 'つなぐ'].forEach(function (x, i) { h.appendChild(el('span', 'pc c' + i, x)); });
@@ -214,7 +215,7 @@
         var c = el('span', 'pc c5');
         var cb = document.createElement('input');
         cb.type = 'checkbox'; cb.id = 'pick-' + i;
-        cb.setAttribute('aria-label', pickText(p) + ' をつなぐ相手に選ぶ');
+        cb.setAttribute('aria-label', p.company + ' ' + pickText(p) + ' をつなぐ相手に選ぶ');
         cb.addEventListener('change', function () { togglePick(i, cb.checked); });
         c.appendChild(cb);
         r.appendChild(c);
@@ -231,7 +232,7 @@
     b.addEventListener('click', function () { f.value = ''; f.click(); });
     f.addEventListener('change', function () { if (f.files && f.files[0]) importCsv(f.files[0]); });
     up.appendChild(b); up.appendChild(f);
-    up.appendChild(el('span', 'hint', '名簿のうち、会社名・所属エリア・PR3件の5列だけを取り込みます。'));
+    up.appendChild(el('span', 'hint', '名簿のうち、番号・氏名・会社名・所属エリア・PR3件だけを取り込みます（所属エリアが空のゲストの行は除きます）。'));
     sec.appendChild(up);
     $('detail').appendChild(sec);
     syncChecks();
@@ -453,7 +454,7 @@
       state.memoFields.forEach(function (f) { L.push('【' + f.label + '】'); L.push((v[f.key] || '').trim() || '（記載なし）'); L.push(''); });
     }
     if (state.picks.length) {
-      L.push('━━ つなぐ参加者（会社名／所属エリア） ━━');
+      L.push('━━ つなぐ参加者（番号 氏名 所属エリア） ━━');
       state.picks.forEach(function (x) { L.push('・' + x.text); });
     }
     return L.join('\n').trim() + '\n';

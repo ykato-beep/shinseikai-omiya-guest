@@ -21,9 +21,10 @@ function parseCsv(text) {
   if (cell !== '' || row.length) { row.push(cell); rows.push(row); }
   return rows.filter(function (r) { return r.some(function (v) { return v !== ''; }); });
 }
-/* 定例会の参加者名簿（CSV）から、会社名(F)・所属エリア(K)・PR(O,Q,S) の5列だけを取り出す */
+/* 定例会の参加者名簿（CSV）から、番号(A)・氏名(B)・会社名(F)・所属エリア(K)・PR(O,Q,S) の7列だけを取り出す。
+ * 所属エリア(K)が空の行はゲストなので除く */
 function pickParticipantColumns(rows) {
-  return rows.filter(function (r) { return /^\d+$/.test(String(r[0] || '').trim()) && String(r[5] || '').trim(); })
-    .map(function (r) { return [r[5] || '', r[10] || '', r[14] || '', r[16] || '', r[18] || '']; });
+  return rows.filter(function (r) { return /^\d+$/.test(String(r[0] || '').trim()) && String(r[10] || '').trim(); })
+    .map(function (r) { return [r[0] || '', r[1] || '', r[5] || '', r[10] || '', r[14] || '', r[16] || '', r[18] || '']; });
 }
 if (typeof module !== 'undefined') { module.exports = parseCsv; module.exports.pickParticipantColumns = pickParticipantColumns; }
