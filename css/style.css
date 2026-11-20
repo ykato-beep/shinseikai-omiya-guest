@@ -346,3 +346,56 @@ body.board #listView, body.board #denied { max-width: 860px; margin-left: auto; 
 .memo-foot .field { margin-bottom: 0; }
 .memo-foot .picks { max-height: 168px; overflow-y: auto; scrollbar-width: thin; }
 .memo-foot .notice { margin: 10px 0 0; }
+
+/* ---- 参加者一覧（番号・氏名・所属エリア・業種・PR①②③・チェック）と、選んだ参加者の表示（改訂） ---- */
+.ptable { font-size: 13px; line-height: 1.55; }
+.pr { display: grid; grid-template-columns: 2.2em minmax(0, 1fr) auto; gap: 2px 10px; padding: 10px 12px; border-top: 1px solid var(--card-line); }
+.pr:first-child { border-top: 0; }
+.pr > span { min-width: 0; overflow-wrap: anywhere; }
+.pr .k-no { color: var(--faint); font-variant-numeric: tabular-nums; text-align: right; }
+.pr .k-nm { font-size: 15px; font-weight: 700; color: #fff; }
+.pr .k-ar { color: var(--cyan); font-weight: 700; white-space: nowrap; }
+.pr .k-bz { grid-column: 2 / -1; color: #e3ebfb; }
+.pr .k-p1, .pr .k-p2, .pr .k-p3 { grid-column: 2 / -1; color: #c9d6f0; }
+.pr .k-p1::before { content: "① "; color: var(--faint); }
+.pr .k-p2::before { content: "② "; color: var(--faint); }
+.pr .k-p3::before { content: "③ "; color: var(--faint); }
+.pr .none { display: none; }
+.pr .k-ck, .pr.ph { display: none; }
+/* 選んだ参加者：小さめの札にして折り返し、何人選んでもすべて見えるようにする */
+.memo-foot .picks { display: flex; flex-wrap: wrap; gap: 6px; max-height: none; overflow: visible; }
+.picks li { padding: 3px 4px 3px 10px; font-size: 13px; line-height: 1.45; gap: 4px; border-radius: 8px; }
+.picks li.none { flex: 1 1 100%; padding: 8px 10px; font-size: 12px; }
+.pick-x { width: 24px; height: 24px; font-size: 14px; border-radius: 6px; }
+.memo-foot { padding-top: 10px; }
+.memo-foot .field-label { margin-bottom: 6px; font-size: 13px; }
+@media (min-width: 1000px) {
+  .pr { grid-template-columns: 2.2em minmax(0, 1fr) auto 44px; cursor: pointer; }
+  .pr .k-bz, .pr .k-p1, .pr .k-p2, .pr .k-p3 { grid-column: 2 / 4; }
+  .pr .k-ck { display: flex; grid-column: 4; grid-row: 1 / span 5; align-items: center; justify-content: center; }
+  .pr input[type="checkbox"] {
+    -webkit-appearance: none; appearance: none; margin: 0; width: 26px; height: 26px; cursor: pointer;
+    border: 2px solid #8ea6d6; border-radius: 7px; background: rgba(255, 255, 255, 0.05) center / 16px no-repeat;
+  }
+  .pr input[type="checkbox"]:checked {
+    border-color: var(--cyan); background-color: var(--cyan);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M2.5 7.4l3 3 6-6.6' fill='none' stroke='%23071226' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  }
+  .pr input[type="checkbox"]:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  .pr:hover { background: rgba(255, 255, 255, 0.04); }
+  .pr.on { background: var(--sel-bg); }
+}
+@media (min-width: 1320px) {
+  /* 幅が広い画面では横一列：番号｜氏名｜所属エリア｜業種｜PR①｜PR②｜PR③｜チェック */
+  .pr { grid-template-columns: 2em 6.4em 4.8em minmax(0, 0.8fr) repeat(3, minmax(0, 1.15fr)) 46px; gap: 0 10px; align-items: start; }
+  .pr .k-bz, .pr .k-p1, .pr .k-p2, .pr .k-p3 { grid-column: auto; }
+  .pr .k-p1::before, .pr .k-p2::before, .pr .k-p3::before { content: none; }
+  .pr .k-nm { font-size: 14.5px; }
+  .pr .k-ar { white-space: normal; }
+  .pr .none { display: block; color: var(--faint); }
+  .pr .k-ck { grid-column: 8; grid-row: auto; align-self: center; }
+  .pr.ph { display: grid; position: sticky; top: 0; z-index: 1; cursor: default; background: #0d1b3d; font-size: 12px; font-weight: 700; }
+  .pr.ph > span, .pr.ph .k-nm, .pr.ph .k-ar { font-size: 12px; color: var(--sub); font-weight: 700; }
+  .pr.ph .k-ck { justify-content: center; }
+  .pr.ph:hover { background: #0d1b3d; }
+}

@@ -204,18 +204,20 @@
     } else {
       sec.appendChild(el('p', 'hint-line top pc-only', 'つなぎたい参加者の行をクリックしてチェックすると、右の記載欄の下に番号・氏名・所属エリアが表示されます。（' + state.participants.length + ' 件）'));
       var t = el('div', 'ptable');
-      var h = el('div', 'prow phead');
-      ['会社名', '所属エリア', 'PR①', 'PR②', 'PR③', 'つなぐ'].forEach(function (x, i) { h.appendChild(el('span', 'pc c' + i, x)); });
+      var h = el('div', 'pr ph');
+      [['k-no', '番号'], ['k-nm', '氏名'], ['k-ar', '所属エリア'], ['k-bz', '業種'], ['k-p1', 'PR①'], ['k-p2', 'PR②'], ['k-p3', 'PR③'], ['k-ck', 'つなぐ']].forEach(function (x) { h.appendChild(el('span', x[0], x[1])); });
       t.appendChild(h);
       state.participants.forEach(function (p, i) {
-        var r = el('label', 'prow');
-        r.appendChild(el('span', 'pc c0', p.company));
-        r.appendChild(el('span', 'pc c1', p.area || '—'));
-        [0, 1, 2].forEach(function (k) { r.appendChild(el('span', 'pc c' + (k + 2) + (p.pr[k] ? '' : ' none'), p.pr[k] || '—')); });
-        var c = el('span', 'pc c5');
+        var r = el('label', 'pr');
+        r.appendChild(el('span', 'k-no', p.no));
+        r.appendChild(el('span', 'k-nm', p.name));
+        r.appendChild(el('span', 'k-ar', p.area));
+        r.appendChild(el('span', 'k-bz' + (p.biz ? '' : ' none'), p.biz || '—'));
+        [0, 1, 2].forEach(function (k) { r.appendChild(el('span', 'k-p' + (k + 1) + (p.pr[k] ? '' : ' none'), p.pr[k] || '—')); });
+        var c = el('span', 'k-ck');
         var cb = document.createElement('input');
         cb.type = 'checkbox'; cb.id = 'pick-' + i;
-        cb.setAttribute('aria-label', p.company + ' ' + pickText(p) + ' をつなぐ相手に選ぶ');
+        cb.setAttribute('aria-label', pickText(p) + ' をつなぐ相手に選ぶ');
         cb.addEventListener('change', function () { togglePick(i, cb.checked); });
         c.appendChild(cb);
         r.appendChild(c);
@@ -232,7 +234,7 @@
     b.addEventListener('click', function () { f.value = ''; f.click(); });
     f.addEventListener('change', function () { if (f.files && f.files[0]) importCsv(f.files[0]); });
     up.appendChild(b); up.appendChild(f);
-    up.appendChild(el('span', 'hint', '名簿のうち、番号・氏名・会社名・所属エリア・PR3件だけを取り込みます（所属エリアが空のゲストの行は除きます）。'));
+    up.appendChild(el('span', 'hint', '名簿のうち、番号・氏名・所属エリア・業種・PR3件だけを取り込みます（所属エリアが空のゲストの行は除きます）。'));
     sec.appendChild(up);
     $('detail').appendChild(sec);
     syncChecks();
