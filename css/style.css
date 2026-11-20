@@ -399,3 +399,45 @@ body.board #listView, body.board #denied { max-width: 860px; margin-left: auto; 
   .pr.ph .k-ck { justify-content: center; }
   .pr.ph:hover { background: #0d1b3d; }
 }
+
+/* ---- 名簿の日程（会議画面） ---- */
+.part-date { margin: -8px 0 10px; font-size: 13px; font-weight: 700; color: var(--cyan); }
+.part-date-in { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--sub); }
+.part-date-in input[type="date"] { width: auto; min-height: 44px; padding: 8px 10px; font-size: 14px; }
+
+/* ---- 定例会 参加者リスト（Zoom 用の手元資料。スマホで読む） ---- */
+body.handout .wrap { padding-top: 18px; padding-bottom: 96px; }
+body.handout .hero { padding: 6px 4px 12px; }
+body.handout .hero h1 { font-size: 22px; }
+body.handout .eyebrow { margin-bottom: 8px; }
+.ho-bar {
+  position: sticky; top: 0; z-index: 3; margin: 0 -16px 12px; padding: 10px 16px 10px;
+  display: grid; grid-template-columns: 1fr auto; gap: 8px 10px; align-items: center;
+  background: rgba(6, 13, 32, 0.96); border-bottom: 1px solid var(--card-line);
+}
+.ho-date { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; }
+.ho-date label { flex: 0 0 auto; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: var(--cyan); }
+.ho-date select { min-height: 46px; padding-top: 9px; padding-bottom: 9px; font-size: 17px; font-weight: 700; }
+.ho-date select:disabled { opacity: 1; background-image: none; padding-right: 14px; }
+.ho-bar input[type="search"] { min-height: 46px; padding: 9px 12px; }
+.ho-count { margin: 0; font-size: 13px; color: var(--sub); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ho-list { list-style: none; margin: 0 0 18px; padding: 0; display: grid; gap: 10px; }
+.ho-card { background: var(--card); border: 1px solid var(--card-line); border-radius: 14px; padding: 14px 15px 15px; }
+.ho-top-row { display: flex; align-items: baseline; gap: 10px; }
+.ho-no { flex: 0 0 auto; min-width: 1.9em; padding: 1px 6px; border-radius: 7px; text-align: center; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; color: #071226; background: var(--cyan); }
+.ho-name { flex: 1 1 auto; min-width: 0; font-size: 20px; font-weight: 700; line-height: 1.35; overflow-wrap: anywhere; }
+.ho-area { flex: 0 0 auto; font-size: 14px; font-weight: 700; color: var(--cyan); white-space: nowrap; }
+.ho-biz { margin: 5px 0 0; font-size: 15px; color: #e3ebfb; overflow-wrap: anywhere; }
+.ho-pr { list-style: none; margin: 10px 0 0; padding: 10px 0 0; border-top: 1px solid var(--card-line); display: grid; gap: 7px; }
+.ho-pr li { position: relative; padding-left: 1.6em; font-size: 15px; line-height: 1.6; color: #d7e2f8; overflow-wrap: anywhere; }
+.ho-pr li::before { content: attr(data-n); position: absolute; left: 0; top: 0; color: var(--cyan); }
+.ho-top {
+  position: fixed; right: 16px; bottom: 18px; z-index: 4; width: 50px; height: 50px; border-radius: 50%;
+  border: 1px solid var(--card-line); background: rgba(12, 26, 60, 0.94); color: var(--text); font: inherit; font-size: 20px; cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+}
+@media (min-width: 700px) {
+  body.handout .wrap { max-width: 760px; }
+  .ho-bar { margin: 0 0 14px; padding: 12px 14px; border: 1px solid var(--card-line); border-radius: 14px; grid-template-columns: auto 1fr auto; }
+  .ho-date { grid-column: auto; }
+}

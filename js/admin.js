@@ -13,7 +13,7 @@
   var directId = (/[#&]id=([0-9a-f-]{36})/.exec(location.hash || '') || [])[1] || '';
   var state = { items: [], matched: 0, guest: '', introducer: '', meeting: '', seq: 0, detail: null, scrollY: 0,
     memoFields: [], memoMax: 2000, memoId: '', sending: false, saveTimer: 0, dirty: false,
-    participants: [], picks: [] /* [{text, idx}]：idx は参加者一覧の行（一覧に無いものは -1） */ };
+    participants: [], partDate: '', picks: [] /* [{text, idx}]：idx は参加者一覧の行（一覧に無いものは -1） */ };
 
   function el(tag, cls, text) {
     var e = document.createElement(tag);
@@ -199,6 +199,7 @@
     sec.id = 'partsCard';
     sec.appendChild(el('span', 'qno', 'PARTICIPANTS'));
     sec.appendChild(el('h2', '', '当日の参加者（つなぐ相手の候補）'));
+    if (state.partDate) sec.appendChild(el('p', 'part-date', withDay(state.partDate) + ' の定例会の名簿'));
     if (!state.participants.length) {
       sec.appendChild(el('p', 'memo none', '参加者リストはまだ読み込まれていません。'));
     } else {
@@ -231,9 +232,18 @@
     b.type = 'button';
     var f = document.createElement('input');
     f.type = 'file'; f.accept = '.csv,text/csv'; f.hidden = true;
-    b.addEventListener('click', function () { f.value = ''; f.click(); });
-    f.addEventListener('change', function () { if (f.files && f.files[0]) importCsv(f.files[0]); });
-    up.appendChild(b); up.appendChild(f);
+    /* 名簿は定例会の日程ごとに保管する。取り込む前に、どの日程の名簿かを指定する */
+    var dl = el('label', 'part-date-in', '定例会の実施日 ');
+    var di = document.createElement('input');
+    di.type = 'date'; di.min = '2026-01-01'; di.max = '2099-12-31';
+    di.value = String((state.detail && state.detail.meeting) || state.partDate || '').replace(/[/]/g, '-');
+    dl.appendChild(di);
+    b.addEventListener('click', function () {
+      if (!di.value) { toast('先に、名簿を取り込む定例会の実施日を選んでください。'); di.focus(); return; }
+      f.value = ''; f.click();
+    });
+    f.addEventListener('change', function () { if (f.files && f.files[0]) importCsv(f.files[0], di.value); });
+    up.appendChild(dl); up.appendChild(b); up.appendChild(f);
     up.appendChild(el('span', 'hint', '名簿のうち、番号・氏名・所属エリア・業種・PR3件だけを取り込みます（所属エリアが空のゲストの行は除きます）。'));
     sec.appendChild(up);
     $('detail').appendChild(sec);
@@ -286,7 +296,7 @@
       ul.appendChild(li);
     });
   }
-  function importCsv(file) {
+  function importCsv(file, date) {
     var reader = new FileReader();
     reader.onload = function () {
       var buf = reader.result, text;
@@ -294,11 +304,12 @@
       catch (e) { try { text = new TextDecoder('shift_jis').decode(buf); } catch (e2) { text = ''; } }
       var rows = pickParticipantColumns(parseCsv(text));
       if (!rows.length) { toast('参加者を読み取れませんでした。定例会の名簿のCSVか確認してください。'); return; }
-      if (!window.confirm(rows.length + ' 件の参加者を読み込みます。現在の参加者リストは置き換えられます。よろしいですか？')) return;
-      post({ action: 'adminSetParticipants', rows: rows }).then(function (r) {
+      if (!window.confirm(withDay(date.replace(/-/g, '/')) + ' の定例会の名簿として、' + rows.length + ' 件の参加者を読み込みます。\nこの日程の名簿がすでにある場合は置き換えられます（ほかの日程の名簿は残ります）。よろしいですか？')) return;
+      post({ action: 'adminSetParticipants', date: date, rows: rows }).then(function (r) {
         if (!r.ok) { if (r.code === 'AUTH') return show('denied'); toast(r.message || '読み込めませんでした。'); return; }
         var texts = state.picks.map(function (x) { return x.text; });
         state.participants = r.participants || [];
+        state.partDate = r.date || '';
         setPicks(texts);
         renderParticipants();
         renderPicks();
@@ -336,6 +347,7 @@
     state.memoFields = r.memoFields || [];
     state.memoMax = r.memoMax || 2000;
     state.participants = r.participants || [];
+    state.partDate = r.participantsDate || '';
     var panel = $('memoPanel');
     panel.hidden = !state.memoFields.length;
     if (panel.hidden) return;
