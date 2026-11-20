@@ -72,9 +72,16 @@
         <!-- パソコン：入力して送信する -->
         <form class="memo-form" id="memoForm" autocomplete="off" novalidate>
           <div id="memoFields"></div>
-          <p class="notice" id="memoError" role="alert" hidden></p>
-          <p class="note-small">この画面の回答内容と上のメモをすべてまとめて、運営担当の登録済みアドレスへ送ります。入力途中の内容は、送信するまでこのパソコンに一時保存されます。</p>
-          <button type="submit" class="btn" id="memoSend">まとめをメールで送信する</button>
+          <p class="note-small">この画面の回答内容、上のメモ、下の「つなぐ参加者」をすべてまとめて、運営担当の登録済みアドレスへ送ります。入力途中の内容は、送信するまでこのパソコンに一時保存されます。</p>
+          <!-- 下段：チェックした参加者と送信ボタン。記載欄が長くても常に見える -->
+          <div class="memo-foot">
+            <div class="field" id="pickBox">
+              <p class="field-label">つなぐ参加者 <span class="hint" id="pickCount"></span></p>
+              <ul class="picks" id="pickList"></ul>
+            </div>
+            <p class="notice" id="memoError" role="alert" hidden></p>
+            <button type="submit" class="btn" id="memoSend">まとめをメールで送信する</button>
+          </div>
         </form>
 
         <!-- スマホ：送信済みのメモを読むだけ -->
@@ -90,6 +97,7 @@
 
 <script src="js/config.js"></script>
 <script src="js/bg.js"></script>
+<script src="js/csv.js"></script>
 <script src="js/admin.js"></script>
 </body>
 </html>

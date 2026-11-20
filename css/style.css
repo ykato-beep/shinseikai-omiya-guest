@@ -276,3 +276,73 @@ body.board #listView, body.board #denied { max-width: 860px; margin-left: auto; 
 @media (min-width: 1320px) {
   .ans-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; align-items: start; }
 }
+
+/* ---- 当日の参加者一覧（つなぐ相手の候補）と、選んだ参加者 ---- */
+.pc-only { display: none; }
+.ptable { border: 1px solid var(--card-line); border-radius: 12px; overflow: hidden; font-size: 13px; line-height: 1.55; }
+.prow { display: grid; grid-template-columns: minmax(0, 1fr) 6.5em; gap: 2px 12px; padding: 10px 12px; border-top: 1px solid var(--card-line); }
+.prow:first-child { border-top: 0; }
+.prow .pc { overflow-wrap: anywhere; min-width: 0; }
+.prow .c0 { font-weight: 700; font-size: 14px; color: #fff; }
+.prow .c1 { color: var(--cyan); text-align: right; }
+.prow .c2, .prow .c3, .prow .c4 { grid-column: 1 / -1; color: #d3def5; }
+.prow .c2::before { content: "① "; color: var(--faint); }
+.prow .c3::before { content: "② "; color: var(--faint); }
+.prow .c4::before { content: "③ "; color: var(--faint); }
+.prow .none { display: none; }
+.prow .c5, .phead { display: none; }
+.parts-tools { margin-top: 14px; align-items: center; gap: 12px; flex-wrap: wrap; }
+.picks { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.picks li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 8px 7px 12px; border-radius: 10px; font-size: 14px; line-height: 1.5; background: var(--sel-bg); border: 1px solid rgba(127, 216, 255, 0.5); overflow-wrap: anywhere; }
+.picks li.none { display: block; padding: 9px 12px; color: var(--faint); font-size: 13px; background: rgba(2, 8, 24, 0.55); border-color: var(--card-line); }
+.pick-x { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--card-line); background: rgba(255, 255, 255, 0.06); color: var(--text); font: inherit; font-size: 16px; line-height: 1; cursor: pointer; }
+.pick-x:hover, .pick-x:focus-visible { border-color: var(--cyan); outline: none; }
+@media (min-width: 1000px) {
+  .pc-only { display: block; }
+  .parts-tools.pc-only { display: flex; }
+  /* 左（回答と参加者一覧）だけがスクロールし、右の記載欄は動かない */
+  #detail { overflow-y: auto; padding-right: 8px; scrollbar-width: thin; scrollbar-color: rgba(130, 175, 255, 0.4) transparent; overscroll-behavior: contain; }
+  #backBtn2 { display: none; }
+  .memo-panel { position: static; }
+  .prow { grid-template-columns: minmax(0, 1fr) 6.5em 44px; cursor: pointer; }
+  .prow .c2, .prow .c3, .prow .c4 { grid-column: 1 / 3; }
+  .prow .c5 { display: flex; grid-column: 3; grid-row: 1 / span 4; align-items: center; justify-content: center; }
+  .prow input[type="checkbox"] { width: 24px; height: 24px; accent-color: #7fd8ff; cursor: pointer; }
+  .prow:hover { background: rgba(255, 255, 255, 0.04); }
+  .prow.on { background: var(--sel-bg); }
+  .prow.phead { cursor: default; background: #0d1b3d; }
+}
+@media (min-width: 1320px) {
+  /* 幅が広い画面では、会社名・所属エリア・PR①②③・チェック欄を横一列に並べる */
+  .prow { grid-template-columns: minmax(130px, 1.1fr) 5.5em repeat(3, minmax(0, 1.25fr)) 52px; gap: 0 12px; align-items: start; }
+  .prow .c1 { text-align: left; }
+  .prow .c2, .prow .c3, .prow .c4 { grid-column: auto; }
+  .prow .c2::before, .prow .c3::before, .prow .c4::before { content: none; }
+  .prow .none { display: block; color: var(--faint); }
+  .prow .c5 { grid-column: 6; grid-row: auto; align-self: center; }
+  .prow.phead { display: grid; position: sticky; top: 0; z-index: 1; font-size: 12px; font-weight: 700; color: var(--sub); }
+  .prow.phead .c0 { font-size: 12px; color: var(--sub); }
+  .prow.phead .c1 { color: var(--sub); }
+  .prow.phead .c5 { justify-content: center; }
+}
+
+/* 記載欄は入力欄を低めにして、下段の「つなぐ参加者」まで一画面に収める */
+.memo-form textarea { min-height: 58px; }
+.memo-form .field { margin-bottom: 12px; }
+.prow input[type="checkbox"] {
+  -webkit-appearance: none; appearance: none; margin: 0; width: 26px; height: 26px; cursor: pointer;
+  border: 2px solid #8ea6d6; border-radius: 7px; background: rgba(255, 255, 255, 0.05) center / 16px no-repeat;
+}
+.prow input[type="checkbox"]:checked {
+  border-color: var(--cyan); background-color: var(--cyan);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M2.5 7.4l3 3 6-6.6' fill='none' stroke='%23071226' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+.prow input[type="checkbox"]:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+@media (min-width: 1000px) { body.board .wrap { padding-bottom: 14px; } }
+
+/* 記載欄の下段：チェックした参加者と送信ボタンは、欄の下端に固定する */
+.memo-form .btn { position: static; margin-top: 10px; }
+.memo-foot { position: sticky; bottom: -22px; z-index: 1; margin: 12px -6px -22px; padding: 12px 6px 22px; background: #0a1530; border-top: 1px solid var(--card-line); }
+.memo-foot .field { margin-bottom: 0; }
+.memo-foot .picks { max-height: 168px; overflow-y: auto; scrollbar-width: thin; }
+.memo-foot .notice { margin: 10px 0 0; }

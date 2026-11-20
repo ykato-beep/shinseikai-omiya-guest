@@ -12,7 +12,8 @@
   /* URL の末尾に &id=回答ID が付いていれば、そのゲストの画面を直接開く */
   var directId = (/[#&]id=([0-9a-f-]{36})/.exec(location.hash || '') || [])[1] || '';
   var state = { items: [], matched: 0, guest: '', introducer: '', meeting: '', seq: 0, detail: null, scrollY: 0,
-    memoFields: [], memoMax: 2000, memoId: '', sending: false, saveTimer: 0, dirty: false };
+    memoFields: [], memoMax: 2000, memoId: '', sending: false, saveTimer: 0, dirty: false,
+    participants: [], picks: [] /* [{text, idx}]：idx は参加者一覧の行（一覧に無いものは -1） */ };
 
   function el(tag, cls, text) {
     var e = document.createElement(tag);
@@ -108,6 +109,7 @@
     if ($('listView').hidden === false) state.scrollY = window.scrollY;
     state.detail = null;
     $('detail').textContent = '';
+    $('detail').scrollTop = 0;
     $('meeting').hidden = true;
     setError('detailError', '');
     $('detailLoading').hidden = false;
@@ -187,6 +189,122 @@
     box.appendChild(grid);
   }
 
+  /* ---------- 当日の参加者（つなぐ相手の候補） ---------- */
+  function pickText(p) { return p.company + (p.area ? '（' + p.area + '）' : ''); }
+  function renderParticipants() {
+    var old = $('partsCard');
+    if (old) old.parentNode.removeChild(old);
+    var sec = el('section', 'card parts');
+    sec.id = 'partsCard';
+    sec.appendChild(el('span', 'qno', 'PARTICIPANTS'));
+    sec.appendChild(el('h2', '', '当日の参加者（つなぐ相手の候補）'));
+    if (!state.participants.length) {
+      sec.appendChild(el('p', 'memo none', '参加者リストはまだ読み込まれていません。'));
+    } else {
+      sec.appendChild(el('p', 'hint-line top pc-only', 'つなぎたい参加者の行をクリックしてチェックすると、右の記載欄の下に会社名と所属エリアが表示されます。（' + state.participants.length + ' 件）'));
+      var t = el('div', 'ptable');
+      var h = el('div', 'prow phead');
+      ['会社名', '所属エリア', 'PR①', 'PR②', 'PR③', 'つなぐ'].forEach(function (x, i) { h.appendChild(el('span', 'pc c' + i, x)); });
+      t.appendChild(h);
+      state.participants.forEach(function (p, i) {
+        var r = el('label', 'prow');
+        r.appendChild(el('span', 'pc c0', p.company));
+        r.appendChild(el('span', 'pc c1', p.area || '—'));
+        [0, 1, 2].forEach(function (k) { r.appendChild(el('span', 'pc c' + (k + 2) + (p.pr[k] ? '' : ' none'), p.pr[k] || '—')); });
+        var c = el('span', 'pc c5');
+        var cb = document.createElement('input');
+        cb.type = 'checkbox'; cb.id = 'pick-' + i;
+        cb.setAttribute('aria-label', pickText(p) + ' をつなぐ相手に選ぶ');
+        cb.addEventListener('change', function () { togglePick(i, cb.checked); });
+        c.appendChild(cb);
+        r.appendChild(c);
+        t.appendChild(r);
+      });
+      sec.appendChild(t);
+    }
+    /* 定例会ごとの名簿（CSV）の読み込み。パソコンのみ */
+    var up = el('div', 'parts-tools pc-only');
+    var b = el('button', 'btn ghost small', state.participants.length ? '参加者リスト（CSV）を入れ替える' : '参加者リスト（CSV）を読み込む');
+    b.type = 'button';
+    var f = document.createElement('input');
+    f.type = 'file'; f.accept = '.csv,text/csv'; f.hidden = true;
+    b.addEventListener('click', function () { f.value = ''; f.click(); });
+    f.addEventListener('change', function () { if (f.files && f.files[0]) importCsv(f.files[0]); });
+    up.appendChild(b); up.appendChild(f);
+    up.appendChild(el('span', 'hint', '名簿のうち、会社名・所属エリア・PR3件の5列だけを取り込みます。'));
+    sec.appendChild(up);
+    $('detail').appendChild(sec);
+    syncChecks();
+  }
+  function syncChecks() {
+    state.participants.forEach(function (p, i) {
+      var cb = $('pick-' + i);
+      if (!cb) return;
+      var on = state.picks.some(function (x) { return x.idx === i; });
+      cb.checked = on;
+      cb.parentNode.parentNode.classList.toggle('on', on);
+    });
+  }
+  /* 保存されていた文字列（会社名（エリア））を、今の参加者一覧の行に結びつける */
+  function setPicks(texts) {
+    var used = {};
+    state.picks = (texts || []).map(function (t) {
+      var idx = -1;
+      state.participants.some(function (p, i) { if (!used[i] && pickText(p) === t) { idx = i; used[i] = 1; return true; } return false; });
+      return { text: String(t), idx: idx };
+    });
+  }
+  function togglePick(i, on) {
+    state.picks = state.picks.filter(function (x) { return x.idx !== i; });
+    if (on) state.picks.push({ text: pickText(state.participants[i]), idx: i });
+    pickChanged();
+  }
+  function pickChanged() {
+    state.dirty = true;
+    setError('memoError', '');
+    memoStatus('入力途中のメモがあります（未送信）。', true);
+    renderPicks();
+    syncChecks();
+    clearTimeout(state.saveTimer);
+    state.saveTimer = setTimeout(saveDraft, 400);
+  }
+  function renderPicks() {
+    var ul = $('pickList');
+    ul.textContent = '';
+    $('pickCount').textContent = state.picks.length ? state.picks.length + ' 件' : '';
+    if (!state.picks.length) { ul.appendChild(el('li', 'none', '左の参加者一覧でチェックした方が、ここに表示されます。')); return; }
+    state.picks.forEach(function (x, k) {
+      var li = el('li', '', x.text);
+      var rm = el('button', 'pick-x', '×');
+      rm.type = 'button';
+      rm.setAttribute('aria-label', x.text + ' を外す');
+      rm.addEventListener('click', function () { state.picks.splice(k, 1); pickChanged(); });
+      li.appendChild(rm);
+      ul.appendChild(li);
+    });
+  }
+  function importCsv(file) {
+    var reader = new FileReader();
+    reader.onload = function () {
+      var buf = reader.result, text;
+      try { text = new TextDecoder('utf-8', { fatal: true }).decode(buf); }
+      catch (e) { try { text = new TextDecoder('shift_jis').decode(buf); } catch (e2) { text = ''; } }
+      var rows = pickParticipantColumns(parseCsv(text));
+      if (!rows.length) { toast('参加者を読み取れませんでした。定例会の名簿のCSVか確認してください。'); return; }
+      if (!window.confirm(rows.length + ' 件の参加者を読み込みます。現在の参加者リストは置き換えられます。よろしいですか？')) return;
+      post({ action: 'adminSetParticipants', rows: rows }).then(function (r) {
+        if (!r.ok) { if (r.code === 'AUTH') return show('denied'); toast(r.message || '読み込めませんでした。'); return; }
+        var texts = state.picks.map(function (x) { return x.text; });
+        state.participants = r.participants || [];
+        setPicks(texts);
+        renderParticipants();
+        renderPicks();
+        toast(r.count + ' 件の参加者を読み込みました。');
+      });
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
   /* ---------- 対応・戦略メモ ---------- */
   function memoRead() {
     var v = {};
@@ -200,7 +318,7 @@
     if (!state.detail || !state.memoFields.length || !state.dirty) return;
     var v = memoRead();
     try {
-      if (memoHasText(v)) localStorage.setItem(DRAFT + state.detail.id, JSON.stringify({ t: Date.now(), memoId: state.memoId, values: v }));
+      if (memoHasText(v) || state.picks.length) localStorage.setItem(DRAFT + state.detail.id, JSON.stringify({ t: Date.now(), memoId: state.memoId, values: v, picks: state.picks.map(function (x) { return x.text; }) }));
       else localStorage.removeItem(DRAFT + state.detail.id);
     } catch (e) { /* 保存できなくても入力は続けられる */ }
   }
@@ -214,6 +332,7 @@
   function memoSetup(r) {
     state.memoFields = r.memoFields || [];
     state.memoMax = r.memoMax || 2000;
+    state.participants = r.participants || [];
     var panel = $('memoPanel');
     panel.hidden = !state.memoFields.length;
     if (panel.hidden) return;
@@ -223,6 +342,9 @@
     state.memoId = draft && /^[0-9a-f-]{36}$/.test(draft.memoId || '') ? draft.memoId : newId();
     state.dirty = !!draft;
     setError('memoError', '');
+    setPicks(draft ? draft.picks : (last ? last.picks : []));
+    renderParticipants();
+    renderPicks();
 
     var box = $('memoFields');
     box.textContent = '';
@@ -231,9 +353,9 @@
       var lab = el('label', 'field-label', f.label);
       lab.htmlFor = 'memo-' + f.key;
       w.appendChild(lab);
-      if (f.hint) w.appendChild(el('p', 'hint-line top', f.hint));
       var ta = document.createElement('textarea');
-      ta.id = 'memo-' + f.key; ta.rows = f.key === 'policy' ? 5 : 3; ta.maxLength = state.memoMax;
+      ta.id = 'memo-' + f.key; ta.rows = f.key === 'policy' ? 3 : 2; ta.maxLength = state.memoMax;
+      if (f.hint) ta.placeholder = f.hint;
       ta.value = values[f.key] || '';
       w.appendChild(ta);
       box.appendChild(w);
@@ -247,6 +369,8 @@
         read.appendChild(el('p', 'sub-label', f.label));
         read.appendChild(el('p', last.values[f.key] ? 'memo' : 'memo none', last.values[f.key] || '記載なし'));
       });
+      read.appendChild(el('p', 'sub-label', 'つなぐ参加者'));
+      read.appendChild(el('p', (last.picks || []).length ? 'memo' : 'memo none', (last.picks || []).length ? last.picks.join('\n') : '選択なし'));
     } else read.appendChild(el('p', 'memo none', 'まだ送信された対応メモはありません。'));
 
     memoStatus(draft ? '入力途中のメモがあります（未送信）。' : last ? '前回 ' + minute(last.at) + ' に' + (last.mailed ? '送信済み' : '記録済み（メールは未送信）') + 'の内容を表示しています。' : 'まだ送信されていません。', !!draft);
@@ -268,12 +392,13 @@
     ev.preventDefault();
     if (state.sending || !state.detail) return;
     var v = memoRead();
-    if (!memoHasText(v)) { setError('memoError', '対応メモを1つ以上入力してから送信してください。'); return; }
+    var picks = state.picks.map(function (x) { return x.text; });
+    if (!memoHasText(v) && !picks.length) { setError('memoError', '対応メモを入力するか、つなぐ参加者を選んでから送信してください。'); return; }
     setError('memoError', '');
     saveDraft();
     var id = state.detail.id, guest = state.detail.guest;
     memoSending(true);
-    post({ action: 'adminSendMemo', id: id, memoId: state.memoId, memo: v }).then(function (r) {
+    post({ action: 'adminSendMemo', id: id, memoId: state.memoId, memo: v, picks: picks }).then(function (r) {
       memoSending(false);
       if (!r.ok) {
         if (r.code === 'AUTH') return show('denied');
@@ -292,6 +417,8 @@
           read.appendChild(el('p', 'sub-label', f.label));
           read.appendChild(el('p', v[f.key].trim() ? 'memo' : 'memo none', v[f.key].trim() || '記載なし'));
         });
+        read.appendChild(el('p', 'sub-label', 'つなぐ参加者'));
+        read.appendChild(el('p', picks.length ? 'memo' : 'memo none', picks.length ? picks.join('\n') : '選択なし'));
       }
     });
   }
@@ -300,9 +427,11 @@
   var fitQueued = false;
   function fitPanel() {
     fitQueued = false;
-    var p = $('memoPanel');
-    if (window.innerWidth < 1000 || $('detailView').hidden) { p.style.maxHeight = ''; return; }
-    p.style.maxHeight = Math.max(320, window.innerHeight - Math.max(14, p.getBoundingClientRect().top) - 14) + 'px';
+    var p = $('memoPanel'), d = $('detail');
+    if (window.innerWidth < 1000 || $('detailView').hidden) { p.style.maxHeight = ''; d.style.height = ''; return; }
+    /* 左（回答と参加者一覧）と右（記載欄）をそれぞれ画面の高さに収める。左だけを動かしても右は動かない */
+    var h = Math.max(320, window.innerHeight - Math.max(14, $('meeting').getBoundingClientRect().top) - 14) + 'px';
+    p.style.maxHeight = h; d.style.height = h;
   }
   function fitSoon() { if (!fitQueued) { fitQueued = true; requestAnimationFrame(fitPanel); } }
 
@@ -322,6 +451,10 @@
     if (memoHasText(v)) {
       L.push('━━ 会議での対応メモ ━━');
       state.memoFields.forEach(function (f) { L.push('【' + f.label + '】'); L.push((v[f.key] || '').trim() || '（記載なし）'); L.push(''); });
+    }
+    if (state.picks.length) {
+      L.push('━━ つなぐ参加者（会社名／所属エリア） ━━');
+      state.picks.forEach(function (x) { L.push('・' + x.text); });
     }
     return L.join('\n').trim() + '\n';
   }
